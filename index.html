@@ -77,7 +77,7 @@
     position:absolute;width:1px;height:1px;padding:0;margin:-1px;
     overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
   }
-  button:focus-visible, .option:focus-visible{
+  button:focus-visible, .option:focus-visible, .code-input:focus-visible{
     outline:3px solid var(--gold);
     outline-offset:2px;
   }
@@ -89,6 +89,13 @@
     font-size:.92rem;
     margin:0 0 4px;
   }
+  .field-label{
+    display:block;
+    font-weight:600;
+    font-size:.92rem;
+    color:var(--ink);
+    margin:0 0 8px;
+  }
   .intro-card{
     background:var(--card);
     border:1px solid var(--line);
@@ -97,6 +104,27 @@
     margin:18px 0;
   }
   .intro-card p:last-child{margin-bottom:0;}
+  .code-input{
+    width:100%;
+    padding:14px 16px;
+    border-radius:12px;
+    border:2px solid var(--line);
+    font-family:'Work Sans',sans-serif;
+    font-size:1.05rem;
+    background:#fff;
+    color:var(--ink);
+    margin-bottom:8px;
+  }
+  .code-input:focus{outline:none;border-color:var(--teal);}
+  .hint{font-size:.82rem;color:var(--muted);margin:0 0 20px;}
+  .error-text{
+    color:var(--berry);
+    font-size:.85rem;
+    font-weight:600;
+    margin:-12px 0 16px;
+    display:none;
+  }
+  .error-text.show{display:block;}
   .mode-select{
     display:flex;
     gap:10px;
@@ -145,6 +173,19 @@
     font-family:'Work Sans',sans-serif;
     font-weight:600;
     font-size:.98rem;
+    cursor:pointer;
+    margin-top:10px;
+  }
+  .btn-danger{
+    width:100%;
+    padding:14px;
+    border:2px solid var(--berry);
+    border-radius:14px;
+    background:transparent;
+    color:var(--berry);
+    font-family:'Work Sans',sans-serif;
+    font-weight:600;
+    font-size:.95rem;
     cursor:pointer;
     margin-top:10px;
   }
@@ -270,8 +311,8 @@
   .takeaways ul{margin:0;padding-left:18px;}
   .takeaways li{margin-bottom:8px;font-size:.92rem;}
 
-  /* ---------- Team screen ---------- */
-  .compare{margin:14px 0 20px;}
+  /* ---------- Export / team screen ---------- */
+  .compare{margin:14px 0 8px;}
   .compare-row{margin-bottom:16px;}
   .compare-label{display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:6px;color:var(--muted);}
   .bar-track{width:100%;height:14px;background:var(--line);border-radius:8px;overflow:hidden;}
@@ -310,6 +351,11 @@
       <p>São 10 perguntas rápidas. Ao final, você confere seu resultado e leva orientações práticas.</p>
     </div>
 
+    <label class="field-label" for="user-code">Crie um código curto (não é o seu nome)</label>
+    <input type="text" id="user-code" class="code-input" maxlength="16" autocomplete="off" placeholder="Ex.: AN15" aria-describedby="code-hint" onkeydown="if(event.key==='Enter'){event.preventDefault();startQuiz();}">
+    <p class="hint" id="code-hint">Dica: duas primeiras letras do seu primeiro nome + dia do seu nascimento (ex.: Ana, dia 15 → AN15). Use o mesmo código na próxima etapa, para conseguirmos comparar antes e depois sem saber quem é você.</p>
+    <p class="error-text" id="code-error" role="alert"></p>
+
     <p class="kicker" style="margin-bottom:8px;">Você está respondendo antes ou depois da atividade de hoje?</p>
     <div class="mode-select">
       <button type="button" class="mode-btn selected" id="mode-pre" aria-pressed="true" onclick="selectMode('pre')">
@@ -321,9 +367,9 @@
     </div>
 
     <button type="button" class="btn-primary" onclick="startQuiz()">Começar o quiz</button>
-    <button type="button" class="link-btn" onclick="showTeam()">Ver como o grupo está indo</button>
+    <button type="button" class="link-btn" onclick="openExportScreen()">Área da equipe</button>
 
-    <p class="footnote">As respostas são registradas de forma anônima, sem nome ou contato, apenas para a equipe de extensão avaliar o impacto da atividade. Este conteúdo tem caráter educativo e não substitui uma consulta — qualquer dúvida, procure a equipe da USF.</p>
+    <p class="footnote">Suas respostas ficam associadas ao código curto que você mesmo cria — não ao seu nome. Isso ajuda a equipe a comparar antes e depois da atividade sem saber quem é quem. Este conteúdo tem caráter educativo e não substitui uma consulta — qualquer dúvida, procure a equipe da USF.</p>
   </section>
 
   <!-- QUIZ -->
@@ -362,25 +408,26 @@
       </ul>
     </div>
     <button type="button" class="btn-primary" onclick="resetToWelcome()">Refazer o quiz</button>
-    <button type="button" class="btn-secondary" onclick="showTeam()">Ver como o grupo está indo</button>
+    <button type="button" class="link-btn" onclick="openExportScreen()">Área da equipe</button>
   </section>
 
-  <!-- TEAM / AGGREGATE -->
+  <!-- TEAM / EXPORT -->
   <section class="screen" id="screen-team">
     <button type="button" class="top-back" onclick="resetToWelcome()">← Voltar</button>
-    <h2>Resultado do grupo</h2>
-    <p class="kicker">Média de acertos, antes e depois da atividade — dados anônimos.</p>
+    <h2>Respostas salvas neste aparelho</h2>
+    <p class="kicker">Os dados ficam só neste navegador, até você exportar ou apagar.</p>
     <div id="team-content">
       <div class="empty-state">Carregando…</div>
     </div>
-    <button type="button" class="btn-secondary" onclick="loadTeamResults()">Atualizar</button>
+    <button type="button" class="btn-primary" onclick="downloadCSV()">Baixar CSV</button>
+    <button type="button" class="btn-danger" onclick="clearLocalData()">Apagar dados deste aparelho</button>
   </section>
 
 </div>
 
 <script>
 const USF_NAME = "USF 1º de Maio";
-const STORAGE_PREFIX = "sxq_";
+const LOCAL_KEY = "sxq_local_responses";
 
 const QUESTIONS = [
   {
@@ -469,6 +516,7 @@ let mode = "pre";
 let current = 0;
 let score = 0;
 let answered = false;
+let userCode = "";
 
 function show(id){
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
@@ -486,6 +534,17 @@ function selectMode(m){
 }
 
 function startQuiz(){
+  const input = document.getElementById("user-code");
+  const errorEl = document.getElementById("code-error");
+  const code = input.value.trim().toUpperCase();
+  if (!code){
+    errorEl.textContent = "Digite um código para continuar.";
+    errorEl.classList.add("show");
+    input.focus();
+    return;
+  }
+  errorEl.classList.remove("show");
+  userCode = code;
   current = 0;
   score = 0;
   show("screen-quiz");
@@ -570,7 +629,7 @@ function finishQuiz(){
   document.getElementById("tier-msg").textContent = tierMessage(score);
   const announce = document.getElementById("sr-announce");
   if (announce) announce.textContent = `Resultado: ${score} de ${QUESTIONS.length} acertos.`;
-  saveResult(mode, score, QUESTIONS.length);
+  saveLocalResponse({ code: userCode, mode, score, total: QUESTIONS.length, ts: Date.now() });
 }
 
 function animateScore(target){
@@ -596,92 +655,115 @@ function tierMessage(s){
 }
 
 function resetToWelcome(){
+  const input = document.getElementById("user-code");
+  if (input) input.value = "";
+  const errorEl = document.getElementById("code-error");
+  if (errorEl) errorEl.classList.remove("show");
   show("screen-welcome");
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  if (typeof window.storage === "undefined"){
-    const fn = document.querySelector(".footnote");
-    if (fn) fn.textContent = "Este conteúdo tem caráter educativo e não substitui uma consulta — qualquer dúvida, procure a equipe da USF.";
-    const teamLinks = document.querySelectorAll('[onclick="showTeam()"]');
-    teamLinks.forEach(el => el.style.display = "none");
-  }
-});
+/* ---------- Local storage (per device) ---------- */
 
-async function withRetry(fn, attempts = 4, baseDelay = 350){
-  let lastErr;
-  for (let i = 1; i <= attempts; i++){
-    try {
-      return await fn();
-    } catch (err){
-      lastErr = err;
-      console.error(`Tentativa ${i} de ${attempts} falhou:`, err);
-      if (i < attempts) await new Promise(r => setTimeout(r, baseDelay * i));
-    }
-  }
-  throw lastErr;
-}
-
-async function saveResult(mode, score, total){
+function getLocalResponses(){
   try {
-    if (typeof window.storage === "undefined"){
-      throw new Error("window.storage indisponível neste ambiente.");
-    }
-    const key = `${STORAGE_PREFIX}${mode}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    await withRetry(() => window.storage.set(key, JSON.stringify({ mode, score, total, ts: Date.now() }), true));
-  } catch (err) {
-    console.error("Não foi possível salvar o resultado após várias tentativas:", err);
+    const raw = localStorage.getItem(LOCAL_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (err){
+    console.error("Não foi possível ler os dados locais:", err);
+    return [];
   }
 }
 
-async function showTeam(){
-  show("screen-team");
-  await loadTeamResults();
+function saveLocalResponse(record){
+  try {
+    const all = getLocalResponses();
+    all.push(record);
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(all));
+  } catch (err){
+    console.error("Não foi possível salvar localmente:", err);
+  }
 }
 
-async function loadTeamResults(){
+function openExportScreen(){
+  show("screen-team");
+  renderExportScreen();
+}
+
+function renderExportScreen(){
   const wrap = document.getElementById("team-content");
-  wrap.innerHTML = `<div class="empty-state">Carregando…</div>`;
-  if (typeof window.storage === "undefined"){
-    wrap.innerHTML = `<div class="empty-state">A comparação de turma só funciona quando o quiz roda dentro do Claude. Fora de lá (por exemplo, hospedado em outro endereço), essa tela fica indisponível — mas o quiz em si continua funcionando normalmente.</div>`;
+  const all = getLocalResponses();
+  if (all.length === 0){
+    wrap.innerHTML = `<div class="empty-state">Ainda não há respostas salvas neste aparelho.</div>`;
     return;
   }
-  try {
-    const list = await withRetry(() => window.storage.list(STORAGE_PREFIX, true));
-    const keys = (list && list.keys) ? list.keys : [];
-    if (keys.length === 0){
-      wrap.innerHTML = `<div class="empty-state">Ainda não há respostas registradas. Assim que alguém terminar o quiz, o resultado aparece aqui.</div>`;
-      return;
-    }
-    const entries = [];
-    for (const k of keys){
-      try {
-        const res = await window.storage.get(k, true);
-        if (res && res.value) entries.push(JSON.parse(res.value));
-      } catch(e){ /* skip unreadable entry */ }
-    }
-    const pre = entries.filter(e => e.mode === "pre");
-    const pos = entries.filter(e => e.mode === "pos");
-    const avg = (arr) => arr.length ? (arr.reduce((s,e) => s + (e.score / e.total), 0) / arr.length) * 100 : 0;
-    const avgPre = avg(pre);
-    const avgPos = avg(pos);
+  const pre = all.filter(e => e.mode === "pre");
+  const pos = all.filter(e => e.mode === "pos");
+  const avg = (arr) => arr.length ? (arr.reduce((s,e) => s + (e.score / e.total), 0) / arr.length) * 100 : 0;
+  const avgPre = avg(pre);
+  const avgPos = avg(pos);
 
-    wrap.innerHTML = `
-      <div class="compare">
-        <div class="compare-row">
-          <div class="compare-label"><span>Antes da atividade</span><span>${pre.length ? avgPre.toFixed(0) + "%" : "—"}</span></div>
-          <div class="bar-track"><div class="bar-fill" style="width:${avgPre}%"></div></div>
-          <div class="count-note">${pre.length} resposta${pre.length === 1 ? "" : "s"}</div>
-        </div>
-        <div class="compare-row">
-          <div class="compare-label"><span>Depois da atividade</span><span>${pos.length ? avgPos.toFixed(0) + "%" : "—"}</span></div>
-          <div class="bar-track"><div class="bar-fill pos" style="width:${avgPos}%"></div></div>
-          <div class="count-note">${pos.length} resposta${pos.length === 1 ? "" : "s"}</div>
-        </div>
+  wrap.innerHTML = `
+    <div class="compare">
+      <div class="compare-row">
+        <div class="compare-label"><span>Antes da atividade</span><span>${pre.length ? avgPre.toFixed(0) + "%" : "—"}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${avgPre}%"></div></div>
+        <div class="count-note">${pre.length} resposta${pre.length === 1 ? "" : "s"}</div>
       </div>
-    `;
-  } catch (err) {
-    wrap.innerHTML = `<div class="empty-state">Não deu pra carregar os resultados agora. Tenta de novo em instantes.</div>`;
+      <div class="compare-row">
+        <div class="compare-label"><span>Depois da atividade</span><span>${pos.length ? avgPos.toFixed(0) + "%" : "—"}</span></div>
+        <div class="bar-track"><div class="bar-fill pos" style="width:${avgPos}%"></div></div>
+        <div class="count-note">${pos.length} resposta${pos.length === 1 ? "" : "s"}</div>
+      </div>
+    </div>
+    <div class="count-note" style="margin-bottom:14px;">${all.length} resposta${all.length === 1 ? "" : "s"} no total, guardadas neste aparelho.</div>
+  `;
+}
+
+function csvEscape(value){
+  return `"${String(value).replace(/"/g, '""')}"`;
+}
+
+function downloadCSV(){
+  const all = getLocalResponses();
+  if (all.length === 0){
+    alert("Ainda não há respostas para exportar.");
+    return;
+  }
+  const header = ["codigo", "modo", "acertos", "total", "data_hora"];
+  const rows = all.map(e => [
+    e.code || "",
+    e.mode === "pre" ? "Antes" : "Depois",
+    e.score,
+    e.total,
+    new Date(e.ts).toLocaleString("pt-BR")
+  ]);
+  const lines = [header, ...rows].map(r => r.map(csvEscape).join(","));
+  const csvContent = "\uFEFF" + lines.join("\r\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
+  a.href = url;
+  a.download = `respostas_saude_em_dia_${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function clearLocalData(){
+  const all = getLocalResponses();
+  if (all.length === 0){
+    alert("Não há dados para apagar.");
+    return;
+  }
+  const ok = window.confirm(`Isso vai apagar ${all.length} resposta(s) salvas neste aparelho, sem volta. Baixe o CSV antes, se ainda não baixou. Quer continuar?`);
+  if (!ok) return;
+  try {
+    localStorage.removeItem(LOCAL_KEY);
+    renderExportScreen();
+  } catch (err){
+    console.error("Não foi possível apagar os dados:", err);
   }
 }
 </script>
